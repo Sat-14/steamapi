@@ -1,4 +1,4 @@
-```python
+
 """
 SteamAPIs Endpoint Test Suite
 =============================
