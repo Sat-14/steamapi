@@ -1,5 +1,3 @@
-And here's a comprehensive test file `test_endpoints.py`:
-
 ```python
 """
 SteamAPIs Endpoint Test Suite
