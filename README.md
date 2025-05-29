@@ -17,7 +17,7 @@ A comprehensive Python library for interacting with the SteamAPIs service, provi
 
 ```bash
 # Clone the repository
-git clone https://github.com/Sat-14/steamapi.py.git
+git clone https://github.com/Sat-14/steamapi.git
 cd steamapi.py
 
 # Install dependencies
