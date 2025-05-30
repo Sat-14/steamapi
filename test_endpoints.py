@@ -1,17 +1,16 @@
-
 """
 SteamAPIs Endpoint Test Suite
 =============================
 
 This file tests all endpoints to ensure they're working correctly.
-Run this to verify your API key and all endpoints are functional.
+Just set your API key below and run this file to test all endpoints.
 
 Usage:
     python test_endpoints.py
     
-    # Or test specific endpoints
-    python test_endpoints.py --endpoint market_stats
-    python test_endpoints.py --endpoint all
+    # Or test specific categories
+    python test_endpoints.py --category market_stats
+    python test_endpoints.py --category all
 """
 
 import sys
@@ -20,13 +19,23 @@ import json
 import argparse
 from datetime import datetime
 from typing import Dict, List, Tuple, Any
-from steamapis import SteamAPIs, SteamAPIsError, APIKeyError, RateLimitError
+
+# ===== SET YOUR API KEY HERE =====
+API_KEY = "YOUR_API_KEY_HERE"  # Replace with your actual API key
+# =================================
+
+# If you prefer not to have your API key in the code, you can leave it blank
+# and set the STEAMAPIS_API_KEY environment variable instead
 
 # Test configuration
 TEST_STEAM_ID = '76561197993496553'
 TEST_APP_ID = 730  # CS:GO
 TEST_ITEM_NAME = 'AK-47 | Redline (Field-Tested)'
 TEST_INSPECT_LINK = 'steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20S76561198084749846A12345678910D12345678987654321'
+
+# Import steamapis library - we'll use the new simplified interface
+import steamapis
+from steamapis import SteamAPIsError, APIKeyError, RateLimitError
 
 # Color codes for terminal output
 class Colors:
@@ -46,20 +55,21 @@ class EndpointTester:
     
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.client = None
         self.results = []
         self.total_tests = 0
         self.passed_tests = 0
         self.failed_tests = 0
         self.skipped_tests = 0
         
+        # Configure the global client - only need to set API key once
+        steamapis.configure(api_key)
+        
     def __enter__(self):
-        self.client = SteamAPIs(self.api_key)
         return self
         
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.client:
-            self.client.close()
+        # Clean up the global client
+        steamapis.close()
     
     def print_header(self, text: str):
         """Print a formatted header"""
@@ -133,7 +143,7 @@ class EndpointTester:
         """Test market statistics endpoint"""
         success, data = self.test_endpoint(
             "Market Statistics",
-            self.client.get_market_stats
+            steamapis.get_market_stats
         )
         
         if success and data:
@@ -148,7 +158,7 @@ class EndpointTester:
         # Test single app details
         success, data = self.test_endpoint(
             "App Details (CS:GO)",
-            self.client.get_app_details,
+            steamapis.get_app_details,
             TEST_APP_ID
         )
         
@@ -160,7 +170,7 @@ class EndpointTester:
         # Test all apps (limited preview)
         success, data = self.test_endpoint(
             "All Apps",
-            self.client.get_all_apps
+            steamapis.get_all_apps
         )
         
         if success and data:
@@ -171,7 +181,7 @@ class EndpointTester:
         # Test single item details
         success, data = self.test_endpoint(
             "Item Details",
-            self.client.get_item_details,
+            steamapis.get_item_details,
             TEST_APP_ID,
             TEST_ITEM_NAME,
             median_history_days=7
@@ -180,7 +190,7 @@ class EndpointTester:
         # Test items for app (full format)
         success, data = self.test_endpoint(
             "Items for App (Full Format)",
-            self.client.get_items_for_app,
+            steamapis.get_items_for_app,
             TEST_APP_ID
         )
         
@@ -190,7 +200,7 @@ class EndpointTester:
         # Test items for app (compact format)
         success, data = self.test_endpoint(
             "Items for App (Compact Format)",
-            self.client.get_items_for_app,
+            steamapis.get_items_for_app,
             TEST_APP_ID,
             format='compact'
         )
@@ -203,7 +213,7 @@ class EndpointTester:
         # Test get inventory
         success, data = self.test_endpoint(
             "Get Inventory",
-            self.client.get_inventory,
+            steamapis.get_inventory,
             TEST_STEAM_ID,
             TEST_APP_ID,
             count=10
@@ -212,7 +222,7 @@ class EndpointTester:
         # Test inventory value
         success, data = self.test_endpoint(
             "Get Inventory Value",
-            self.client.get_inventory_value,
+            steamapis.get_inventory_value,
             TEST_STEAM_ID,
             TEST_APP_ID
         )
@@ -222,7 +232,7 @@ class EndpointTester:
         # Test market search
         success, data = self.test_endpoint(
             "Market Search",
-            self.client.get_market_search,
+            steamapis.get_market_search,
             TEST_APP_ID,
             "ak-47",
             count=5
@@ -231,7 +241,7 @@ class EndpointTester:
         # Test popular items
         success, data = self.test_endpoint(
             "Popular Items",
-            self.client.get_popular_items,
+            steamapis.get_popular_items,
             TEST_APP_ID,
             count=5
         )
@@ -239,7 +249,7 @@ class EndpointTester:
         # Test recent items
         success, data = self.test_endpoint(
             "Recent Items",
-            self.client.get_recent_items,
+            steamapis.get_recent_items,
             TEST_APP_ID,
             count=5
         )
@@ -247,7 +257,7 @@ class EndpointTester:
         # Test item listings
         success, data = self.test_endpoint(
             "Item Listings",
-            self.client.get_item_listings,
+            steamapis.get_item_listings,
             TEST_APP_ID,
             TEST_ITEM_NAME,
             count=5
@@ -256,7 +266,7 @@ class EndpointTester:
         # Test item orders
         success, data = self.test_endpoint(
             "Item Orders",
-            self.client.get_item_orders,
+            steamapis.get_item_orders,
             TEST_APP_ID,
             TEST_ITEM_NAME
         )
@@ -265,7 +275,7 @@ class EndpointTester:
         """Test trading cards endpoint"""
         success, data = self.test_endpoint(
             "Trading Cards",
-            self.client.get_all_cards
+            steamapis.get_all_cards
         )
         
         if success and data:
@@ -278,21 +288,21 @@ class EndpointTester:
         # Test user profile
         success, data = self.test_endpoint(
             "User Profile",
-            self.client.get_user_profile,
+            steamapis.get_user_profile,
             TEST_STEAM_ID
         )
         
         # Test float value (CS:GO specific)
         success, data = self.test_endpoint(
             "Float Value",
-            self.client.get_float_value,
+            steamapis.get_float_value,
             TEST_INSPECT_LINK
         )
         
         # Test price history
         success, data = self.test_endpoint(
             "Price History",
-            self.client.get_price_history,
+            steamapis.get_price_history,
             TEST_APP_ID,
             TEST_ITEM_NAME,
             days=7
@@ -307,7 +317,7 @@ class EndpointTester:
         
         success, data = self.test_endpoint(
             "Bulk Price Overview",
-            self.client.get_price_overview,
+            steamapis.get_price_overview,
             TEST_APP_ID,
             items
         )
@@ -344,6 +354,36 @@ class EndpointTester:
         # Print summary
         self.print_summary()
     
+    def run_specific_category(self, category_name: str):
+        """Run a specific test category"""
+        self.print_header(f"Testing {category_name}")
+        
+        # Map category names to test functions
+        category_map = {
+            "market_stats": self.test_market_stats,
+            "app": self.test_app_operations,
+            "item": self.test_item_operations,
+            "inventory": self.test_inventory_operations,
+            "market": self.test_market_operations,
+            "cards": self.test_trading_cards,
+            "other": self.test_other_operations,
+            "bulk": self.test_bulk_operations,
+        }
+        
+        if category_name.lower() not in category_map:
+            print(f"{Colors.FAIL}Unknown category: {category_name}{Colors.ENDC}")
+            print(f"Available categories: {', '.join(category_map.keys())}")
+            return
+            
+        try:
+            test_func = category_map[category_name.lower()]
+            test_func()
+        except Exception as e:
+            print(f"{Colors.FAIL}Category test failed: {e}{Colors.ENDC}")
+            
+        # Print summary
+        self.print_summary()
+    
     def print_summary(self):
         """Print test summary"""
         self.print_header("Test Summary")
@@ -373,24 +413,30 @@ class EndpointTester:
 def main():
     """Main test runner"""
     parser = argparse.ArgumentParser(description='Test SteamAPIs endpoints')
-    parser.add_argument('--api-key', type=str, help='API key (or set STEAMAPIS_API_KEY env var)')
-    parser.add_argument('--endpoint', type=str, help='Test specific endpoint category')
+    parser.add_argument('--api-key', type=str, help='API key (overrides default)')
+    parser.add_argument('--category', type=str, help='Test specific category')
     
     args = parser.parse_args()
     
-    # Get API key
+    # Get API key - priority: command line > environment var > hardcoded
     import os
-    api_key = args.api_key or os.environ.get('STEAMAPIS_API_KEY')
+    api_key = args.api_key or os.environ.get('STEAMAPIS_API_KEY') or API_KEY
     
-    if not api_key:
+    if not api_key or api_key == "YOUR_API_KEY_HERE":
         print(f"{Colors.FAIL}Error: No API key provided!{Colors.ENDC}")
-        print("Please provide an API key using --api-key or set STEAMAPIS_API_KEY environment variable")
+        print("Please either:")
+        print("1. Edit this file and set your API key at the top")
+        print("2. Provide an API key using --api-key")
+        print("3. Set STEAMAPIS_API_KEY environment variable")
         sys.exit(1)
     
     # Run tests
     try:
         with EndpointTester(api_key) as tester:
-            tester.run_all_tests()
+            if args.category:
+                tester.run_specific_category(args.category)
+            else:
+                tester.run_all_tests()
     except APIKeyError:
         print(f"{Colors.FAIL}Error: Invalid API key!{Colors.ENDC}")
         sys.exit(1)
