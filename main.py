@@ -8,7 +8,7 @@ and various Steam-related endpoints.
 
 Author: Your Name
 License: MIT
-Version: 1.0.0
+Version: 1.1.0
 """
 
 import requests
@@ -51,7 +51,6 @@ class SteamAPIs:
     including inventory retrieval, item information, market prices, and more.
     
     Attributes:
-        api_key (str): Your SteamAPIs API key
         base_url (str): Base URL for the API endpoints
         timeout (int): Request timeout in seconds
         session (requests.Session): Persistent session for API requests
@@ -72,14 +71,14 @@ class SteamAPIs:
         if not api_key:
             raise APIKeyError("API key is required")
             
-        self.api_key = api_key
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
         
-        # Create a persistent session
+        # Create a persistent session with the API key pre-configured in default params
         self.session = requests.Session()
+        self.session.params = {'api_key': api_key}  # Set API key as default parameter for all requests
         self.session.headers.update({
-            'User-Agent': 'SteamAPIs-Python/1.0.0'
+            'User-Agent': 'SteamAPIs-Python/1.1.0'
         })
         
         logger.info(f"SteamAPIs client initialized with base URL: {self.base_url}")
@@ -102,11 +101,7 @@ class SteamAPIs:
             APIResponseError: If the API returns an error
             RateLimitError: If rate limit is exceeded
         """
-        # Add API key to params
-        if params is None:
-            params = {}
-        params['api_key'] = self.api_key
-        
+        # No need to add API key to params as it's already in the session's default params
         url = urljoin(self.base_url, endpoint)
         
         try:
@@ -522,7 +517,51 @@ class SteamAPIs:
         self.close()
 
 
-# Convenience functions
+# Create a global client instance that can be imported and used directly
+_default_client = None
+
+
+def configure(api_key: str, **kwargs) -> SteamAPIs:
+    """
+    Configure the global SteamAPIs client instance.
+    
+    Args:
+        api_key (str): Your SteamAPIs API key
+        **kwargs: Additional arguments to pass to SteamAPIs constructor
+        
+    Returns:
+        SteamAPIs: Configured client instance
+        
+    Example:
+        >>> import steamapis
+        >>> steamapis.configure('YOUR_API_KEY')
+        >>> # Now you can use any function directly
+        >>> stats = steamapis.get_market_stats()
+    """
+    global _default_client
+    _default_client = SteamAPIs(api_key, **kwargs)
+    return _default_client
+
+
+def get_client() -> SteamAPIs:
+    """
+    Get the configured SteamAPIs client instance.
+    
+    Returns:
+        SteamAPIs: Configured client instance
+        
+    Raises:
+        APIKeyError: If the client hasn't been configured yet
+        
+    Example:
+        >>> client = steamapis.get_client()
+    """
+    if _default_client is None:
+        raise APIKeyError("SteamAPIs client hasn't been configured. Call configure() first.")
+    return _default_client
+
+
+# Convenience function to create a standalone client
 def create_client(api_key: str, **kwargs) -> SteamAPIs:
     """
     Create a SteamAPIs client instance.
@@ -538,3 +577,103 @@ def create_client(api_key: str, **kwargs) -> SteamAPIs:
         >>> client = create_client('YOUR_API_KEY')
     """
     return SteamAPIs(api_key, **kwargs)
+
+
+# Proxy methods for the global client to enable direct module-level access
+def get_market_stats() -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_market_stats using the global client"""
+    return get_client().get_market_stats()
+
+
+def get_inventory(steam_id: str, app_id: int, context_id: int = 2, 
+                  count: Optional[int] = None, start_assetid: Optional[str] = None) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_inventory using the global client"""
+    return get_client().get_inventory(steam_id, app_id, context_id, count, start_assetid)
+
+
+def get_items_for_app(app_id: int, format: Optional[str] = None,
+                      compact_value: str = 'safe') -> Union[Dict[str, Any], Dict[str, float]]:
+    """Proxy for SteamAPIs.get_items_for_app using the global client"""
+    return get_client().get_items_for_app(app_id, format, compact_value)
+
+
+def get_all_cards() -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_all_cards using the global client"""
+    return get_client().get_all_cards()
+
+
+def get_item_details(app_id: int, market_hash_name: str, 
+                     median_history_days: int = 15) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_item_details using the global client"""
+    return get_client().get_item_details(app_id, market_hash_name, median_history_days)
+
+
+def get_price_history(app_id: int, market_hash_name: str, 
+                      days: int = 30) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_price_history using the global client"""
+    return get_client().get_price_history(app_id, market_hash_name, days)
+
+
+def get_user_profile(steam_id: str) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_user_profile using the global client"""
+    return get_client().get_user_profile(steam_id)
+
+
+def get_market_search(app_id: int, query: str, start: int = 0, 
+                      count: int = 100, sort_by: str = 'popular', 
+                      sort_order: str = 'desc') -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_market_search using the global client"""
+    return get_client().get_market_search(app_id, query, start, count, sort_by, sort_order)
+
+
+def get_item_listings(app_id: int, market_hash_name: str, 
+                      start: int = 0, count: int = 100) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_item_listings using the global client"""
+    return get_client().get_item_listings(app_id, market_hash_name, start, count)
+
+
+def get_item_orders(app_id: int, market_hash_name: str) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_item_orders using the global client"""
+    return get_client().get_item_orders(app_id, market_hash_name)
+
+
+def get_popular_items(app_id: int, count: int = 100) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_popular_items using the global client"""
+    return get_client().get_popular_items(app_id, count)
+
+
+def get_recent_items(app_id: int, count: int = 100) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_recent_items using the global client"""
+    return get_client().get_recent_items(app_id, count)
+
+
+def get_price_overview(app_id: int, market_hash_names: List[str]) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_price_overview using the global client"""
+    return get_client().get_price_overview(app_id, market_hash_names)
+
+
+def get_float_value(inspect_link: str) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_float_value using the global client"""
+    return get_client().get_float_value(inspect_link)
+
+
+def get_app_details(app_id: int) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_app_details using the global client"""
+    return get_client().get_app_details(app_id)
+
+
+def get_all_apps() -> List[Dict[str, Any]]:
+    """Proxy for SteamAPIs.get_all_apps using the global client"""
+    return get_client().get_all_apps()
+
+
+def get_inventory_value(steam_id: str, app_id: int, 
+                        context_id: int = 2) -> Dict[str, Any]:
+    """Proxy for SteamAPIs.get_inventory_value using the global client"""
+    return get_client().get_inventory_value(steam_id, app_id, context_id)
+
+
+def close():
+    """Proxy for SteamAPIs.close using the global client"""
+    if _default_client is not None:
+        _default_client.close()
